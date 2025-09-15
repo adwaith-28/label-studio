@@ -15,23 +15,43 @@ class ApiService {
     endpoint: string, 
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
+    const url = `${API_BASE_URL}${endpoint}`;
+    console.log('Making API request to:', url);
+    
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(url, {
+        mode: 'cors',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
           ...options.headers,
         },
         ...options,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Response data:', data);
       return { success: true, data };
     } catch (error) {
       console.error('API request failed:', error);
+      console.error('Request URL was:', url);
+      
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        return { 
+          success: false, 
+          error: 'CORS error or network issue. Make sure your API at https://localhost:7181 allows cross-origin requests from this domain.' 
+        };
+      }
+      
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
