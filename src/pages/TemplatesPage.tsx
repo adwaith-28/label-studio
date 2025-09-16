@@ -103,7 +103,7 @@ const TemplatesPage = () => {
     }
   ];
 
-  const displayTemplates = templates.length > 0 ? templates : mockTemplates;
+  const displayTemplates = (templates || []).length > 0 ? templates : mockTemplates;
   const filteredTemplates = displayTemplates.filter(template => {
     const matchesCategory = filters.category === 'All' || template.category === filters.category;
     const matchesSearch = template.name.toLowerCase().includes(searchInput.toLowerCase()) ||

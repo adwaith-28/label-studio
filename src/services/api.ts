@@ -8,7 +8,7 @@ import {
   PaginatedResponse 
 } from '../types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://localhost:7181/api';
 
 class ApiService {
   private async request<T>(
@@ -24,9 +24,12 @@ class ApiService {
         ...options,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('API error details:', errorText);
+    throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
+  }
+
 
       const data = await response.json();
       return { success: true, data };
@@ -40,15 +43,47 @@ class ApiService {
   }
 
   // Template API methods
-  async getTemplates(page = 1, limit = 20, category?: string): Promise<ApiResponse<PaginatedResponse<Template>>> {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(category && category !== 'All' && { category }),
-    });
+async getTemplates(page = 1, limit = 20, category?: string): Promise<ApiResponse<PaginatedResponse<Template>>> {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...(category && category !== 'All' && { category }),
+  });
 
-    return this.request<PaginatedResponse<Template>>(`/templates?${params}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/templates?${params}`);
+    
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('API error details:', errorText);
+    throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
   }
+
+
+    const data = await response.json();
+    
+    // If the response is a simple array, convert it to paginated format
+    if (Array.isArray(data)) {
+      const paginatedResponse: PaginatedResponse<Template> = {
+        data: data,
+        page: 1,
+        limit: data.length,
+        total: data.length,
+        totalPages: 1,
+      };
+      return { success: true, data: paginatedResponse };
+    }
+    
+    // If it's already in paginated format
+    return { success: true, data };
+  } catch (error) {
+    console.error('API request failed:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
 
   async getTemplate(id: number): Promise<ApiResponse<Template>> {
     return this.request<Template>(`/templates/${id}`);
@@ -92,8 +127,11 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API error details:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
+
 
       return await response.blob();
     } catch (error) {
@@ -113,8 +151,11 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API error details:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
+
 
       return await response.blob();
     } catch (error) {
@@ -135,8 +176,11 @@ class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('API error details:', errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
+
 
       const data = await response.json();
       return { success: true, data };
